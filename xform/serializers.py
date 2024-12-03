@@ -173,9 +173,4 @@ class SubmissionSerializer(SubmissionSuccessMixin, serializers.Serializer):
 
             raise exc
 
-        for f in getattr(settings, 'XFORM_POST_SAVE_INSTANCES', []):
-            module_name, function_name = f.rsplit(".", 1)
-            function = get_from_module(module_name, function_name)
-            function(instance)
-
         return instance

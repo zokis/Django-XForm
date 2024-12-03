@@ -32,6 +32,16 @@ uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
                         re.DOTALL)
 
 
+def post_save_instance_callbacks(instance):
+    """
+    Call functions registered in the settings after save of an instance
+    """
+    for f in getattr(settings, 'XFORM_POST_SAVE_INSTANCES', []):
+        module_name, function_name = f.rsplit(".", 1)
+        function = get_from_module(module_name, function_name)
+        function(instance)
+
+
 def get_submission_date_from_xml(xml):
     # check in survey_node attributes
     xml = clean_and_parse_xml(xml)
@@ -215,6 +225,10 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform, checksum):
         instance.skip_signal = False
         instance.current_user = submitted_by
         instance.save()
+
+    # Call functions registered in the settings after save of an instance
+    post_save_instance_callbacks(instance)
+
     return instance
 
 
@@ -276,6 +290,10 @@ def create_instance(
         with transaction.atomic():
             save_attachments(xform, existing_instance, media_files)
             existing_instance.save(update_fields=['json', 'date_modified'])
+
+            # Call functions registered in the settings after save of an instance
+            post_save_instance_callbacks(existing_instance)
+
         return existing_instance
 
     try:
